@@ -1,0 +1,21 @@
+FROM rust:bookworm as builder
+
+WORKDIR /code
+COPY ./src /code/src
+COPY ./Cargo.toml /code/Cargo.toml
+RUN cargo build --bins --release
+
+FROM debian:bookworm
+
+RUN apt update
+RUN apt install -y ca-certificates tzdata openssl libssl3 wget && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /app
+RUN groupadd ponga && useradd -g ponga ponga 
+RUN chown -R ponga:ponga /app
+COPY --from=builder /code/target/release/ponga /app/ponga
+
+WORKDIR /app
+USER ponga
+
+ENTRYPOINT [ "./ponga" ]
